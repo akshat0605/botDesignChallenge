@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRITI // VISION CORE</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #020408;
+    --bg2:       #060d14;
+    --bg3:       #0a1520;
+    --cyan:      #00e5ff;
+    --cyan-dim:  #00a8c0;
+    --cyan-dark: #003d47;
+    --green:     #00ff9d;
+    --green-dim: #00b36e;
+    --amber:     #ffb300;
+    --red:       #ff2d55;
+    --border:    rgba(0,229,255,0.15);
+    --border2:   rgba(0,229,255,0.08);
+    --glow:      0 0 16px rgba(0,229,255,0.35);
+    --glow-g:    0 0 16px rgba(0,255,157,0.35);
+    --font-mono: 'Share Tech Mono', 'Courier New', Courier, monospace;
+    --font-hud:  'Orbitron', 'Courier New', monospace;
+    --font-body: 'Rajdhani', 'DejaVu Sans', Arial, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: var(--font-body);
+    font-size: 15px;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* Scanline */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 3px,
+      rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Master grid: header | left(video) | right(data) ────────────────────── */
+  #app {
+    display: grid;
+    grid-template-rows: 54px 1fr;
+    grid-template-columns: 42% 1fr;  /* video takes 42%, data gets the rest */
+    height: 100vh;
+  }
+
+  /* ── Header ──────────────────────────────────────────────────────────────── */
+  #header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, var(--bg2), var(--bg3), var(--bg2));
+    position: relative;
+    overflow: hidden;
+  }
+  #header::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: sweepH 4s linear infinite;
+  }
+  @keyframes sweepH { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+
+  .logo {
+    font-family: var(--font-hud);
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 7px;
+    color: var(--cyan);
+    text-shadow: var(--glow);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 26px; height: 26px;
+    border: 2px solid var(--cyan);
+    transform: rotate(45deg);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--glow);
+    animation: pbox 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .logo-icon::after {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    animation: pinner 2s ease-in-out infinite;
+  }
+  @keyframes pbox   { 0%,100%{box-shadow:var(--glow);} 50%{box-shadow:0 0 28px rgba(0,229,255,0.7);} }
+  @keyframes pinner { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .header-center {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(0,229,255,0.45);
+    letter-spacing: 3px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .status-pill {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .status-pill.online { border-color:var(--green); color:var(--green); text-shadow:var(--glow-g); }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 1.2s step-end infinite;
+    box-shadow: var(--glow-g);
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  #clock {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    min-width: 82px;
+    text-align: right;
+  }
+
+  /* ── LEFT: video column ──────────────────────────────────────────────────── */
+  #video-col {
+    grid-row: 2; grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  #video-panel {
+    position: relative;
+    flex: 1;
+    background: #000;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;  /* matches 640×480 exactly — no dead space */
+    max-height: 100%;
+    align-self: center;
+  }
+
+  #video-feed {
+    width: 100%; height: 100%;
+    object-fit: contain;  /* full FOV — no cropping */
+    display: block;
+    opacity: 0.92;
+    background: #000;
+  }
+
+  /* Corner HUD brackets */
+  .corner { position:absolute; width:24px; height:24px; z-index:10; }
+  .corner::before, .corner::after { content:''; position:absolute; background:var(--cyan); box-shadow:var(--glow); }
+  .corner::before { width:100%; height:2px; }
+  .corner::after  { width:2px; height:100%; }
+  .corner.tl { top:14px; left:14px; }
+  .corner.tr { top:14px; right:14px; transform:scaleX(-1); }
+  .corner.bl { bottom:14px; left:14px; transform:scaleY(-1); }
+  .corner.br { bottom:14px; right:14px; transform:scale(-1); }
+
+  #scan-v {
+    position:absolute; top:0; bottom:0; width:2px;
+    background:linear-gradient(to bottom, transparent, var(--cyan), transparent);
+    opacity:0.3;
+    animation:sweepV 4s linear infinite;
+    z-index:5; pointer-events:none;
+  }
+  @keyframes sweepV { 0%{left:-2px;} 100%{left:100%;} }
+
+  #detect-flash {
+    position:absolute; inset:0;
+    border:2px solid transparent;
+    pointer-events:none; z-index:8;
+  }
+  #detect-flash.active {
+    border-color:var(--green);
+    box-shadow:inset 0 0 30px rgba(0,255,157,0.1);
+    animation:flashOut 0.6s forwards;
+  }
+  @keyframes flashOut { 0%{opacity:1;} 100%{opacity:0;} }
+
+  .video-label {
+    position:absolute;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--cyan);
+    letter-spacing:2px;
+    opacity:0.7; z-index:10;
+  }
+  .video-label.tl { top:18px; left:46px; }
+  .video-label.tr { top:18px; right:46px; text-align:right; }
+  .video-label.bl { bottom:18px; left:46px; }
+
+  #fps-counter {
+    position:absolute;
+    bottom:18px; left:50%; transform:translateX(-50%);
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--green);
+    letter-spacing:3px;
+    text-shadow:var(--glow-g);
+    z-index:10;
+  }
+
+  /* Stats strip below video */
+  #video-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  .vstat {
+    padding: 8px 10px;
+    border-right: 1px solid var(--border2);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .vstat:last-child { border-right: none; }
+
+  .vstat-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: rgba(0,229,255,0.35);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .vstat-val {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--cyan);
+    line-height: 1;
+  }
+  .vstat-val.green { color: var(--green); text-shadow: var(--glow-g); }
+  .vstat-val.amber { color: var(--amber); }
+
+  /* ── RIGHT: data column ──────────────────────────────────────────────────── */
+  #data-col {
+    grid-row: 2; grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Shared panel header */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border2);
+    background: var(--bg3);
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-family: var(--font-hud);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--cyan-dim);
+    text-transform: uppercase;
+  }
+  .panel-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border: 1px solid var(--cyan-dark);
+    color: var(--cyan-dim);
+    letter-spacing: 1px;
+  }
+
+  /* ── Plate — top of data column, prominent ───────────────────────────────── */
+  #plate-section {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  #plate-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    gap: 14px;
+  }
+
+  #plate-number {
+    font-family: var(--font-hud);
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: 10px;
+    color: var(--green);
+    text-shadow: var(--glow-g);
+    transition: all 0.3s ease;
+    line-height: 1;
+  }
+  #plate-number.empty {
+    font-size: 15px;
+    letter-spacing: 4px;
+    color: rgba(0,229,255,0.2);
+    text-shadow: none;
+  }
+  #plate-number.reading {
+    font-size: 15px;
+    letter-spacing: 4px;
+    color: var(--amber);
+    text-shadow: 0 0 16px rgba(255,179,0,0.5);
+    animation: readingPulse 0.8s ease-in-out infinite;
+  }
+  @keyframes readingPulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.5; }
+  }
+  #plate-number.reading {
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--amber);
+    text-shadow: 0 0 16px rgba(255,179,0,0.5);
+    animation: readingPulse 0.8s ease-in-out infinite;
+  }
+  @keyframes readingPulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+  #plate-number.confirmed { animation: plateConfirm 0.5s ease; }
+  @keyframes plateConfirm {
+    0%  { transform:scale(1.08); text-shadow:0 0 40px rgba(0,255,157,0.9); }
+    100%{ transform:scale(1);    text-shadow:var(--glow-g); }
+  }
+
+  .plate-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .plate-meta-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(0,255,157,0.35);
+    letter-spacing: 2px;
+  }
+  #plate-time {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(0,255,157,0.6);
+    letter-spacing: 1px;
+  }
+
+  /* ── Detection cards ─────────────────────────────────────────────────────── */
+  #det-section {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+
+  #detections-list {
+    padding: 8px;
+    overflow-y: auto;
+    max-height: 220px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dark) transparent;
+  }
+  #detections-list::-webkit-scrollbar { width: 3px; }
+  #detections-list::-webkit-scrollbar-thumb { background: var(--cyan-dark); }
+
+  /* Cards displayed as a horizontal wrap for space efficiency */
+  #detections-list .cards-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  .det-card {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--cyan);
+    padding: 9px 11px;
+    position: relative;
+    overflow: hidden;
+    animation: cardIn 0.25s ease forwards;
+  }
+  @keyframes cardIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+  .det-card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg, var(--cyan), transparent);
+    opacity:0.4;
+  }
+  .det-card-row {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:4px;
+  }
+  .det-name {
+    font-family:var(--font-hud);
+    font-size:13px;
+    font-weight:700;
+    color:#fff;
+    letter-spacing:1px;
+  }
+  .det-conf {
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--green);
+    text-shadow:var(--glow-g);
+  }
+  .det-cat {
+    font-family:var(--font-mono);
+    font-size:10px;
+    color:var(--cyan-dim);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .conf-bar-bg { height:3px; background:var(--bg); border-radius:1px; overflow:hidden; }
+  .conf-bar { height:100%; border-radius:1px; transition:width 0.4s ease; }
+  .conf-bar.high { background:linear-gradient(90deg,var(--green-dim),var(--green)); box-shadow:0 0 5px var(--green); }
+  .conf-bar.mid  { background:linear-gradient(90deg,#b36000,var(--amber));          box-shadow:0 0 5px var(--amber); }
+  .conf-bar.low  { background:linear-gradient(90deg,#7a0019,var(--red));            box-shadow:0 0 5px var(--red);   }
+
+  .no-det {
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:rgba(0,229,255,0.25);
+    text-align:center;
+    padding:18px 0;
+    letter-spacing:3px;
+  }
+  .no-det::before { content:'[ '; opacity:0.5; }
+  .no-det::after  { content:' ]'; opacity:0.5; }
+
+  /* ── Event log ───────────────────────────────────────────────────────────── */
+  #log-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  #log-area {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan-dark) transparent;
+  }
+  #log-area::-webkit-scrollbar { width: 3px; }
+  #log-area::-webkit-scrollbar-thumb { background: var(--cyan-dark); }
+
+  .log-row {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:4px 14px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    border-bottom:1px solid rgba(0,229,255,0.04);
+    animation:logIn 0.2s ease;
+    flex-shrink:0;
+  }
+  @keyframes logIn { from{opacity:0;} to{opacity:1;} }
+  .log-time { color:rgba(0,229,255,0.3); width:68px; flex-shrink:0; }
+  .log-tag  { padding:1px 5px; font-size:9px; letter-spacing:1px; border:1px solid; flex-shrink:0; }
+  .log-tag.face   { border-color:var(--cyan);  color:var(--cyan); }
+  .log-tag.object { border-color:var(--amber); color:var(--amber); }
+  .log-tag.plate  { border-color:var(--green); color:var(--green); }
+  .log-tag.sys    { border-color:rgba(0,229,255,0.25); color:rgba(0,229,255,0.35); }
+  .log-msg  { color:rgba(255,255,255,0.7); flex:1; }
+  .log-conf { color:rgba(0,229,255,0.5); flex-shrink:0; }
+
+  /* ── Bottom controls strip ───────────────────────────────────────────────── */
+  #controls-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg3);
+    flex-shrink: 0;
+    align-items: center;
+  }
+
+  .ctrl-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-right: 1px solid var(--border2);
+  }
+  .ctrl-block:last-child { border-right: none; }
+
+  .slider-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--cyan-dim);
+    letter-spacing: 1px;
+    width: 52px;
+    flex-shrink: 0;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--bg);
+    border-radius: 1px;
+    outline: none;
+    cursor: crosshair;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    background: var(--cyan);
+    border-radius: 0;
+    transform: rotate(45deg);
+    box-shadow: var(--glow);
+    cursor: crosshair;
+  }
+
+  .slider-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--cyan);
+    width: 34px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  #reset-btn {
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border2);
+    color: rgba(0,229,255,0.4);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 0 16px;
+    height: 100%;
+    cursor: crosshair;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #reset-btn:hover { color:var(--red); background:rgba(255,45,85,0.06); }
+
+  /* ── Boot loader ─────────────────────────────────────────────────────────── */
+  #loader {
+    position:fixed; inset:0;
+    background:var(--bg);
+    z-index:10000;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:20px;
+    transition:opacity 0.5s;
+  }
+  .loader-logo {
+    font-family:var(--font-hud);
+    font-size:40px;
+    font-weight:900;
+    letter-spacing:16px;
+    color:var(--cyan);
+    text-shadow:var(--glow);
+    animation:flicker 0.1s step-end 8;
+  }
+  @keyframes flicker { 0%,100%{opacity:1;} 50%{opacity:0;} }
+  .loader-sub {
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:rgba(0,229,255,0.4);
+    letter-spacing:4px;
+  }
+  .loader-bar-bg { width:240px; height:2px; background:var(--bg3); overflow:hidden; }
+  .loader-bar { height:100%; background:var(--cyan); box-shadow:var(--glow); animation:loadFill 1.6s ease forwards; }
+  @keyframes loadFill { from{width:0;} to{width:100%;} }
+  .loader-text {
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--cyan-dim);
+    letter-spacing:3px;
+    overflow:hidden;
+    white-space:nowrap;
+    width:0;
+    animation:typing 1.6s steps(24) forwards;
+  }
+  @keyframes typing { to{width:240px;} }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-logo">KRITI</div>
+  <div class="loader-sub">ROBOTICS VISION SYSTEM</div>
+  <div class="loader-bar-bg"><div class="loader-bar"></div></div>
+  <div class="loader-text">INITIALISING VISION CORE…</div>
+</div>
+
+<div id="app">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header id="header">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      KRITI&nbsp;&nbsp;ROBOTICS
+    </div>
+    <div class="header-center">
+      VISION&nbsp;CORE&nbsp;/&nbsp;STREAM&nbsp;ACTIVE&nbsp;/&nbsp;NODE&nbsp;01
+    </div>
+    <div class="header-right">
+      <div class="status-pill online"><div class="status-dot"></div>LIVE</div>
+      <div id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- ── LEFT column: video + stats strip ──────────────────────────────────── -->
+  <div id="video-col">
+    <div id="video-panel">
+      <img id="video-feed" src="/video_feed" alt="Camera feed">
+      <div id="scan-v"></div>
+      <div id="detect-flash"></div>
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="video-label tl">CAM//01&nbsp;640×480</div>
+      <div class="video-label tr" id="v-detcount">OBJ: 0</div>
+      <div class="video-label bl" id="v-status">SCANNING…</div>
+      <div id="fps-counter">-- FPS</div>
+    </div>
+
+    <!-- 4-stat strip below video -->
+    <div id="video-stats">
+      <div class="vstat">
+        <span class="vstat-label">Uptime</span>
+        <span class="vstat-val green" id="uptime-val">00:00:00</span>
+      </div>
+      <div class="vstat">
+        <span class="vstat-label">Detections</span>
+        <span class="vstat-val amber" id="total-detections">0</span>
+      </div>
+      <div class="vstat">
+        <span class="vstat-label">Plates Read</span>
+        <span class="vstat-val" id="plates-read">0</span>
+      </div>
+      <div class="vstat">
+        <span class="vstat-label">Last Plate</span>
+        <span class="vstat-val green" id="last-plate-stat" style="font-size:13px">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT column: all data ────────────────────────────────────────────── -->
+  <div id="data-col">
+
+    <!-- Plate — most important, at top -->
+    <div id="plate-section">
+      <div class="panel-header">
+        <span class="panel-title">Number Plate</span>
+        <span class="panel-badge" id="plate-badge">STANDBY</span>
+      </div>
+      <div id="plate-display">
+        <div id="plate-number" class="empty">NO PLATE DETECTED</div>
+        <div class="plate-meta">
+          <span class="plate-meta-label">VEHICLE NUMBER PLATE</span>
+          <span id="plate-time">--:--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detected objects -->
+    <div id="det-section">
+      <div class="panel-header">
+        <span class="panel-title">Detected Objects</span>
+        <span class="panel-badge" id="det-count-badge">0 FOUND</span>
+      </div>
+      <div id="detections-list">
+        <div class="no-det">SCANNING</div>
+      </div>
+    </div>
+
+    <!-- Event log -->
+    <div id="log-section">
+      <div class="panel-header">
+        <span class="panel-title">Event Log</span>
+        <span class="panel-badge" id="log-count-badge">0 EVENTS</span>
+      </div>
+      <div id="log-area"></div>
+    </div>
+
+    <!-- Controls strip -->
+    <div id="controls-strip">
+      <div class="ctrl-block">
+        <span class="slider-label">FACE</span>
+        <input type="range" id="faceThresh" min="20" max="90" value="45"
+               oninput="updateThresholds();document.getElementById('faceVal').textContent=this.value+'%'">
+        <span class="slider-val" id="faceVal">45%</span>
+      </div>
+      <div class="ctrl-block">
+        <span class="slider-label">OBJECT</span>
+        <input type="range" id="objThresh" min="30" max="95" value="35"
+               oninput="updateThresholds();document.getElementById('objVal').textContent=this.value+'%'">
+        <span class="slider-val" id="objVal">35%</span>
+      </div>
+      <button id="reset-btn" onclick="clearLog()">⬡ RESET LOG</button>
+    </div>
+
+  </div><!-- end data-col -->
+
+</div><!-- end app -->
+
+<script>
+  let lastLogTime     = {}
+  let lastPlate       = null
+  let totalDetections = 0
+  let platesRead      = 0
+  let startTime       = Date.now()
+  let fpsFrames       = 0
+  let fpsLast         = Date.now()
+  let logCount        = 0
+  const LOG_COOLDOWN  = 5000
+  const MAX_LOG_ROWS  = 80
+
+  // Boot loader
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const l = document.getElementById('loader')
+      l.style.opacity = '0'
+      setTimeout(() => l.remove(), 500)
+    }, 1800)
+  })
+
+  // Clock
+  function updateClock() {
+    document.getElementById('clock').textContent = new Date().toTimeString().slice(0, 8)
+  }
+  setInterval(updateClock, 1000)
+  updateClock()
+
+  // Uptime
+  function updateUptime() {
+    const s  = Math.floor((Date.now() - startTime) / 1000)
+    const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+    const ss = String(s % 60).padStart(2, '0')
+    document.getElementById('uptime-val').textContent = `${hh}:${mm}:${ss}`
+  }
+  setInterval(updateUptime, 1000)
+
+  // FPS
+  document.getElementById('video-feed').addEventListener('load', () => {
+    fpsFrames++
+    const now = Date.now()
+    if (now - fpsLast >= 1000) {
+      document.getElementById('fps-counter').textContent = `${fpsFrames} FPS`
+      fpsFrames = 0
+      fpsLast   = now
+    }
+  })
+
+  // Thresholds
+  function updateThresholds() {
+    fetch(`/set_thresholds?face=${document.getElementById('faceThresh').value}&object=${document.getElementById('objThresh').value}`)
+  }
+
+  // Log
+  function addLog(tag, tagClass, msg, conf) {
+    const area = document.getElementById('log-area')
+    const row  = document.createElement('div')
+    row.className = 'log-row'
+    const t       = new Date().toTimeString().slice(0, 8)
+    const confStr = conf !== undefined ? `<span class="log-conf">${conf}%</span>` : ''
+    row.innerHTML = `
+      <span class="log-time">${t}</span>
+      <span class="log-tag ${tagClass}">${tag}</span>
+      <span class="log-msg">${msg}</span>
+      ${confStr}
+    `
+    area.insertBefore(row, area.firstChild)
+    while (area.children.length > MAX_LOG_ROWS) area.removeChild(area.lastChild)
+    logCount++
+    document.getElementById('log-count-badge').textContent = `${logCount} EVENTS`
+  }
+
+  // Reset
+  function clearLog() {
+    document.getElementById('log-area').innerHTML   = ''
+    lastLogTime     = {}
+    lastPlate       = null
+    totalDetections = 0
+    platesRead      = 0
+    logCount        = 0
+    startTime       = Date.now()
+    document.getElementById('total-detections').textContent  = '0'
+    document.getElementById('plates-read').textContent       = '0'
+    document.getElementById('last-plate-stat').textContent   = '—'
+    document.getElementById('plate-number').textContent      = 'NO PLATE DETECTED'
+    document.getElementById('plate-number').className        = 'empty'
+    document.getElementById('plate-badge').textContent       = 'STANDBY'
+    document.getElementById('plate-time').textContent        = '--:--:--'
+    document.getElementById('log-count-badge').textContent   = '0 EVENTS'
+    addLog('SYS', 'sys', 'LOG CLEARED — SESSION RESET')
+  }
+
+  function confClass(c) { return c >= 75 ? 'high' : c >= 50 ? 'mid' : 'low' }
+
+  function flashDetect() {
+    const el = document.getElementById('detect-flash')
+    el.classList.remove('active')
+    void el.offsetWidth
+    el.classList.add('active')
+  }
+
+  let prevKey = ''
+
+  function sync() {
+    fetch('/detections')
+      .then(r => r.json())
+      .then(data => {
+
+        // Objects
+        const list = document.getElementById('detections-list')
+        const objs = data.objects || []
+
+        if (objs.length === 0) {
+          list.innerHTML = '<div class="no-det">SCANNING</div>'
+          document.getElementById('det-count-badge').textContent = '0 FOUND'
+          document.getElementById('v-detcount').textContent      = 'OBJ: 0'
+          document.getElementById('v-status').textContent        = 'SCANNING…'
+        } else {
+          const key = objs.map(o => o.name + o.conf).join('|')
+          if (key !== prevKey) {
+            prevKey = key
+            // Render as grid of cards
+            const wrap = document.createElement('div')
+            wrap.className = 'cards-wrap'
+
+            objs.forEach(obj => {
+              const card = document.createElement('div')
+              card.className = 'det-card'
+              card.innerHTML = `
+                <div class="det-card-row">
+                  <span class="det-name">${obj.name.toUpperCase()}</span>
+                  <span class="det-conf">${obj.conf}%</span>
+                </div>
+                <div class="det-cat">${obj.category}</div>
+                <div class="conf-bar-bg">
+                  <div class="conf-bar ${confClass(obj.conf)}" style="width:${obj.conf}%"></div>
+                </div>
+              `
+              wrap.appendChild(card)
+
+              const now = Date.now()
+              if (!lastLogTime[obj.name] || now - lastLogTime[obj.name] > LOG_COOLDOWN) {
+                lastLogTime[obj.name] = now
+                totalDetections++
+                document.getElementById('total-detections').textContent = totalDetections
+                const tc = obj.category === 'Face recognition' ? 'face' : 'object'
+                addLog(obj.category.toUpperCase().slice(0, 6), tc, obj.name.toUpperCase(), obj.conf)
+                flashDetect()
+              }
+            })
+
+            list.innerHTML = ''
+            list.appendChild(wrap)
+            document.getElementById('det-count-badge').textContent = `${objs.length} FOUND`
+            document.getElementById('v-detcount').textContent      = `OBJ: ${objs.length}`
+            document.getElementById('v-status').textContent        = 'OBJECT LOCKED'
+          }
+        }
+
+        // Plate
+        const plateEl    = document.getElementById('plate-number')
+        const plateBadge = document.getElementById('plate-badge')
+
+        if (data.plate && data.plate.number) {
+          // Confirmed — show the number
+          if (lastPlate !== data.plate.number) {
+            lastPlate = data.plate.number
+            plateEl.textContent    = data.plate.number
+            plateEl.className      = 'confirmed'
+            plateBadge.textContent = 'CONFIRMED'
+            document.getElementById('plate-time').textContent      = new Date().toTimeString().slice(0, 8)
+            platesRead++
+            document.getElementById('plates-read').textContent     = platesRead
+            document.getElementById('last-plate-stat').textContent = data.plate.number
+            addLog('PLATE', 'plate', data.plate.number)
+            flashDetect()
+            void plateEl.offsetWidth
+          }
+        } else if (data.plate_reading) {
+          // Plate is visible but OCR still working — amber pulsing state
+          if (plateEl.className !== 'confirmed') {
+            plateEl.textContent    = 'READING PLATE…'
+            plateEl.className      = 'reading'
+            plateBadge.textContent = 'SCANNING'
+          }
+        } else {
+          // No plate in view — reset only if not showing a confirmed number
+          if (plateEl.className !== 'confirmed') {
+            plateEl.textContent    = 'NO PLATE DETECTED'
+            plateEl.className      = 'empty'
+            plateBadge.textContent = 'STANDBY'
+          }
+        }
+
+      })
+      .catch(() => {})
+  }
+
+  setInterval(sync, 300)
+  addLog('SYS', 'sys', 'VISION CORE ONLINE — READY')
+</script>
+</body>
+</html>
